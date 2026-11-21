@@ -1,0 +1,1995 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SarOak PDF Extractor — Hybrid PDF &amp; Myanmar OCR Studio</title>
+  <meta name="description" content="Extract text from PDF books directly in your browser using PDF.js or high-accuracy Burmese &amp; English AI OCR with Gemini 2.5 Flash and automatic API key rotation." />
+  <meta property="og:title" content="SarOak PDF Extractor — Hybrid PDF &amp; Myanmar OCR Studio" />
+  <meta property="og:description" content="Hybrid PDF text extraction and Burmese/English AI OCR studio with multi-key Gemini rotation, ready for GitHub Pages." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- Google Fonts: Plus Jakarta Sans, DM Sans, JetBrains Mono, Noto Sans Myanmar -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+Myanmar:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS v3 CDN with class-based dark mode -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['"Plus Jakarta Sans"', '"Noto Sans Myanmar"', 'system-ui', 'sans-serif'],
+            sans: ['"DM Sans"', '"Noto Sans Myanmar"', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+          },
+          colors: {
+            accent: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Initialize theme immediately to prevent FOUC -->
+  <script>
+    (function () {
+      try {
+        var savedTheme = localStorage.getItem('saroak_theme');
+        var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      } catch (e) {}
+    })();
+  </script>
+
+  <!-- PDF.js CDN (v3.11.174 UMD for rock-solid GitHub Pages & static hosting compatibility) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+
+  <style>
+    :root {
+      color-scheme: light;
+    }
+    html.dark {
+      color-scheme: dark;
+    }
+    body {
+      font-family: "DM Sans", "Noto Sans Myanmar", system-ui, sans-serif;
+    }
+    .font-myanmar {
+      font-family: "Noto Sans Myanmar", "DM Sans", system-ui, sans-serif;
+      line-height: 1.85;
+    }
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+    /* Custom subtle scrollbars */
+    textarea::-webkit-scrollbar,
+    .custom-scroll::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    textarea::-webkit-scrollbar-track,
+    .custom-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    textarea::-webkit-scrollbar-thumb,
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.35);
+      border-radius: 4px;
+    }
+    textarea::-webkit-scrollbar-thumb:hover,
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+      background: rgba(148, 163, 184, 0.55);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased selection:bg-blue-600/15 selection:text-blue-700 dark:selection:bg-blue-500/25 dark:selection:text-blue-200 transition-colors duration-200">
+
+  <!-- Top Navigation Bar (Clean 3-zone layout, compact for mobile <= 15% viewport height) -->
+  <header class="sticky top-0 z-30 border-b border-slate-200/80 dark:border-slate-800/80 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md">
+    <div class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-4 sm:gap-8">
+      <!-- Zone 1: Single-line Brand Wordmark -->
+      <a href="#top" class="flex items-center gap-2.5 whitespace-nowrap shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded-md">
+        <span class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0">
+          <i data-lucide="book-open-text" class="w-4 h-4"></i>
+        </span>
+        <span class="font-display font-bold text-base sm:text-lg tracking-tight text-slate-900 dark:text-slate-50 whitespace-nowrap" data-i18n="brandName">
+          SarOak Extractor
+        </span>
+      </a>
+
+      <!-- Zone 2: Clean single-line anchor links (Desktop) -->
+      <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600 dark:text-slate-400">
+        <a href="#workspace" class="hover:text-slate-900 dark:hover:text-slate-100 transition-colors whitespace-nowrap shrink-0" data-i18n="navWorkspace">Workspace</a>
+        <a href="#editor-section" class="hover:text-slate-900 dark:hover:text-slate-100 transition-colors whitespace-nowrap shrink-0" data-i18n="navOutput">Extracted Text</a>
+        <a href="#guide-section" class="hover:text-slate-900 dark:hover:text-slate-100 transition-colors whitespace-nowrap shrink-0" data-i18n="navGuide">How It Works</a>
+      </nav>
+
+      <!-- Zone 3: Primary Action (API Keys Modal Trigger) -->
+      <div class="flex items-center gap-2 shrink-0">
+        <button
+          id="openKeysModalBtn"
+          type="button"
+          class="inline-flex items-center gap-2 h-10 px-3.5 sm:px-4 rounded-lg text-sm font-medium bg-slate-900 text-white hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-500 transition-colors whitespace-nowrap shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
+        >
+          <i data-lucide="key-round" class="w-4 h-4 shrink-0"></i>
+          <span data-i18n="apiKeysBtn">API Keys</span>
+          <span id="headerKeyCount" class="font-mono text-xs opacity-80 tabular-nums">(0)</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace Container -->
+  <main id="top" class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+
+    <!-- Page Intro & Workspace Utility Bar (Language & Theme Toggles live here cleanly) -->
+    <section class="mb-6 sm:mb-8 flex flex-col lg:flex-row lg:items-end justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
+      <div class="max-w-2xl">
+        <h1 class="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50" style="text-wrap: balance;" data-i18n="heroTitle">
+          PDF Book Text &amp; Myanmar OCR Studio
+        </h1>
+        <p class="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed" data-i18n="heroSubtitle">
+          Extract selectable text locally in seconds, or switch to Gemini 2.5 Flash vision OCR for scanned Burmese and English books with automatic API key rotation.
+        </p>
+      </div>
+
+      <!-- Workspace Controls: Bilingual Switcher + Dark/Light Mode Toggle -->
+      <div class="flex flex-wrap items-center gap-2.5 shrink-0">
+        <!-- Language Toggle -->
+        <div class="inline-flex items-center p-1 rounded-lg bg-slate-200/70 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80" role="group" aria-label="Language Selector">
+          <button
+            id="langEnBtn"
+            type="button"
+            class="h-8 px-3 rounded-md text-xs font-medium transition-colors whitespace-nowrap shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+          >
+            English
+          </button>
+          <button
+            id="langMyBtn"
+            type="button"
+            class="h-8 px-3 rounded-md text-xs font-medium transition-colors whitespace-nowrap shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+          >
+            မြန်မာ
+          </button>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button
+          id="themeToggleBtn"
+          type="button"
+          class="inline-flex items-center justify-center gap-2 h-10 px-3.5 rounded-lg text-xs sm:text-sm font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors whitespace-nowrap shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+          aria-label="Toggle color theme"
+        >
+          <i id="themeIconSun" data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
+          <i id="themeIconMoon" data-lucide="moon" class="w-4 h-4 block dark:hidden"></i>
+          <span id="themeLabel" data-i18n="themeDark">Dark Mode</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Primary 2-Column Workbench -->
+    <section id="workspace" class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+
+      <!-- Left Column (5/12 on Desktop): Upload, Settings, Controls, Preview -->
+      <div class="lg:col-span-5 space-y-6">
+
+        <!-- 1. PDF Upload & File Summary Card -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 sm:p-6">
+          <div class="flex items-center justify-between gap-3 mb-4">
+            <h2 class="font-display text-base font-semibold text-slate-900 dark:text-slate-100" data-i18n="uploadHeading">
+              01. Source PDF Book
+            </h2>
+            <button
+              id="clearFileBtn"
+              type="button"
+              class="hidden text-xs font-medium text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 transition-colors whitespace-nowrap shrink-0 py-1 px-2 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+              data-i18n="changeFileBtn"
+            >
+              Change file
+            </button>
+          </div>
+
+          <!-- Drag & Drop Zone -->
+          <div
+            id="dropZone"
+            tabindex="0"
+            role="button"
+            aria-label="Upload PDF file"
+            class="group relative flex flex-col items-center justify-center text-center border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 rounded-xl p-6 sm:p-8 cursor-pointer bg-slate-50/60 dark:bg-slate-950/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+          >
+            <input id="pdfFileInput" type="file" accept=".pdf,application/pdf" class="sr-only" />
+            <div class="w-11 h-11 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+              <i data-lucide="file-up" class="w-5 h-5"></i>
+            </div>
+            <p class="text-sm font-medium text-slate-900 dark:text-slate-100" data-i18n="dropTitle">
+              Drop your PDF book here, or click to browse
+            </p>
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400" data-i18n="dropSubtitle">
+              Processed locally in your browser · Supports scanned &amp; digital PDFs
+            </p>
+          </div>
+
+          <!-- Loaded File Metadata Bar (Hidden until file loaded) -->
+          <div id="fileInfoBox" class="hidden mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+            <div class="flex items-start gap-3">
+              <div class="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
+                <i data-lucide="file-text" class="w-5 h-5"></i>
+              </div>
+              <div class="min-w-0 flex-1">
+                <p id="fileNameDisplay" class="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate"></p>
+                <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+                  <span id="fileSizeDisplay">0 MB</span>
+                  <span aria-hidden="true">&middot;</span>
+                  <span id="filePagesDisplay">0 pages</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Extraction Mode & Page Range Controls -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 sm:p-6 space-y-5">
+          <div>
+            <h2 class="font-display text-base font-semibold text-slate-900 dark:text-slate-100 mb-3" data-i18n="modeHeading">
+              02. Extraction Mode
+            </h2>
+
+            <!-- Mode Selector Segmented Tabs -->
+            <div class="grid grid-cols-2 gap-1.5 p-1 rounded-lg bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800" role="tablist">
+              <button
+                id="modeLocalBtn"
+                type="button"
+                role="tab"
+                aria-selected="true"
+                class="min-h-[42px] px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+              >
+                <i data-lucide="zap" class="w-4 h-4 shrink-0"></i>
+                <span data-i18n="modeLocalTab">Fast Local</span>
+              </button>
+              <button
+                id="modeOcrBtn"
+                type="button"
+                role="tab"
+                aria-selected="false"
+                class="min-h-[42px] px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+              >
+                <i data-lucide="scan-text" class="w-4 h-4 shrink-0"></i>
+                <span data-i18n="modeOcrTab">AI OCR (Gemini)</span>
+              </button>
+            </div>
+
+            <!-- Mode Description -->
+            <p id="modeDescription" class="mt-2.5 text-xs text-slate-600 dark:text-slate-400 leading-relaxed" data-i18n="modeLocalDesc">
+              Uses PDF.js directly in your browser with zero API quota. Automatically detects scanned or garbled pages and offers one-click switching to AI OCR.
+            </p>
+          </div>
+
+          <!-- AI OCR Specific Options (Shown when Mode 2 active) -->
+          <div id="ocrOptionsPanel" class="hidden pt-4 border-t border-slate-200 dark:border-slate-800 space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label for="ocrScaleSelect" class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5" data-i18n="ocrQualityLabel">
+                  Render Resolution
+                </label>
+                <select
+                  id="ocrScaleSelect"
+                  class="w-full h-10 px-3 rounded-lg text-xs sm:text-sm bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                >
+                  <option value="1.5" data-i18n="resStandard">1.5x · Standard (Fast)</option>
+                  <option value="2.0" selected data-i18n="resHigh">2.0x · High (Recommended)</option>
+                  <option value="2.5" data-i18n="resUltra">2.5x · Ultra (Small Text)</option>
+                </select>
+              </div>
+              <div>
+                <label for="ocrDelaySelect" class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5" data-i18n="ocrDelayLabel">
+                  Delay Between Pages
+                </label>
+                <select
+                  id="ocrDelaySelect"
+                  class="w-full h-10 px-3 rounded-lg text-xs sm:text-sm bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                >
+                  <option value="200" data-i18n="delayFast">0.2s · Minimal</option>
+                  <option value="800" selected data-i18n="delayBalanced">0.8s · Balanced</option>
+                  <option value="2000" data-i18n="delaySafe">2.0s · Rate-Limit Safe</option>
+                  <option value="4000" data-i18n="delaySlow">4.0s · Conservative</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="space-y-2.5">
+              <label class="flex items-start gap-2.5 cursor-pointer select-none">
+                <input id="stripHeadersCheckbox" type="checkbox" checked class="mt-0.5 w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-600" />
+                <span class="text-xs sm:text-sm text-slate-700 dark:text-slate-300" data-i18n="stripHeadersLabel">
+                  Remove running headers, footers &amp; standalone page numbers
+                </span>
+              </label>
+              <label class="flex items-start gap-2.5 cursor-pointer select-none">
+                <input id="ocrLanguageHintCheckbox" type="checkbox" checked class="mt-0.5 w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-600" />
+                <span class="text-xs sm:text-sm text-slate-700 dark:text-slate-300" data-i18n="myanmarOptimizeLabel">
+                  Optimize for Burmese (Myanmar) Unicode &amp; convert legacy Zawgyi glyphs
+                </span>
+              </label>
+            </div>
+
+            <!-- Inline API Key Quick Status -->
+            <div class="flex items-center justify-between gap-3 pt-2 text-xs">
+              <span id="ocrKeyStatusText" class="text-slate-600 dark:text-slate-400 tabular-nums"></span>
+              <button
+                id="inlineManageKeysBtn"
+                type="button"
+                class="font-medium text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap shrink-0"
+                data-i18n="manageKeysLink"
+              >
+                Manage API Keys
+              </button>
+            </div>
+          </div>
+
+          <!-- Page Range Selection -->
+          <div class="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs font-medium text-slate-700 dark:text-slate-300" data-i18n="pageRangeLabel">
+                Page Range
+              </span>
+              <div class="inline-flex items-center gap-1 p-0.5 rounded-md bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                <button
+                  id="rangeAllBtn"
+                  type="button"
+                  class="px-2.5 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap"
+                  data-i18n="rangeAll"
+                >
+                  All Pages
+                </button>
+                <button
+                  id="rangeCustomBtn"
+                  type="button"
+                  class="px-2.5 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap"
+                  data-i18n="rangeCustom"
+                >
+                  Custom
+                </button>
+              </div>
+            </div>
+
+            <div id="customRangeInputs" class="grid grid-cols-2 gap-3">
+              <div>
+                <label for="startPageInput" class="block text-xs text-slate-500 dark:text-slate-400 mb-1" data-i18n="fromPage">From Page</label>
+                <input
+                  id="startPageInput"
+                  type="number"
+                  min="1"
+                  value="1"
+                  class="w-full h-10 px-3 rounded-lg text-sm font-mono tabular-nums bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                />
+              </div>
+              <div>
+                <label for="endPageInput" class="block text-xs text-slate-500 dark:text-slate-400 mb-1" data-i18n="toPage">To Page</label>
+                <input
+                  id="endPageInput"
+                  type="number"
+                  min="1"
+                  value="10"
+                  class="w-full h-10 px-3 rounded-lg text-sm font-mono tabular-nums bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                />
+              </div>
+            </div>
+
+            <label class="flex items-center gap-2.5 cursor-pointer select-none pt-1">
+              <input id="pageMarkersCheckbox" type="checkbox" checked class="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-600" />
+              <span class="text-xs sm:text-sm text-slate-700 dark:text-slate-300" data-i18n="includePageMarkers">
+                Insert page markers (e.g. --- Page 1 ---)
+              </span>
+            </label>
+          </div>
+
+          <!-- Primary Action Buttons -->
+          <div class="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+            <button
+              id="startExtractBtn"
+              type="button"
+              disabled
+              class="flex-1 h-11 px-5 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-45 disabled:cursor-not-allowed transition-colors inline-flex items-center justify-center gap-2 whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
+            >
+              <i data-lucide="play" class="w-4 h-4 shrink-0"></i>
+              <span id="startBtnLabel" data-i18n="startExtractBtn">Extract Text</span>
+            </button>
+
+            <button
+              id="stopExtractBtn"
+              type="button"
+              class="hidden h-11 px-4 rounded-lg text-sm font-semibold bg-red-600 text-white hover:bg-red-700 transition-colors inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
+            >
+              <i data-lucide="square" class="w-4 h-4 shrink-0"></i>
+              <span data-i18n="stopBtn">Stop</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. Scanned / Garbled Detection Banner (Contextual Alert) -->
+        <div id="scannedAlertBanner" class="hidden bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/80 rounded-xl p-4 sm:p-5">
+          <div class="flex items-start gap-3">
+            <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5"></i>
+            <div class="flex-1 min-w-0">
+              <h3 class="text-sm font-semibold text-amber-950 dark:text-amber-200" data-i18n="scannedAlertTitle">
+                Scanned or Non-Unicode Pages Detected
+              </h3>
+              <p id="scannedAlertDesc" class="mt-1 text-xs sm:text-sm text-amber-900/90 dark:text-amber-300/90 leading-relaxed"></p>
+              <div class="mt-3 flex flex-wrap items-center gap-2.5">
+                <button
+                  id="switchToOcrActionBtn"
+                  type="button"
+                  class="h-9 px-3.5 rounded-lg text-xs font-semibold bg-amber-600 text-white hover:bg-amber-700 transition-colors inline-flex items-center gap-1.5 whitespace-nowrap"
+                >
+                  <i data-lucide="scan-text" class="w-3.5 h-3.5"></i>
+                  <span data-i18n="switchToOcrBtn">Switch to AI OCR &amp; Re-run</span>
+                </button>
+                <button
+                  id="dismissScannedAlertBtn"
+                  type="button"
+                  class="h-9 px-3 rounded-lg text-xs font-medium text-amber-900 dark:text-amber-300 hover:bg-amber-200/50 dark:hover:bg-amber-900/40 transition-colors whitespace-nowrap"
+                  data-i18n="dismissBtn"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Live Progress & Current Page Preview Card -->
+        <div id="progressPreviewCard" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 sm:p-6">
+          <div class="flex items-center justify-between gap-3 mb-3">
+            <h2 class="font-display text-base font-semibold text-slate-900 dark:text-slate-100" data-i18n="previewHeading">
+              03. Live Progress &amp; Page Preview
+            </h2>
+            <span id="progressPercent" class="font-mono text-xs font-semibold text-slate-600 dark:text-slate-400 tabular-nums">0%</span>
+          </div>
+
+          <!-- Progress Track -->
+          <div class="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden mb-2.5">
+            <div id="progressBarFill" class="h-full w-0 bg-blue-600 transition-all duration-200 rounded-full"></div>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600 dark:text-slate-400 mb-4">
+            <span id="progressStatusText" class="tabular-nums" data-i18n="statusIdle">Ready to extract</span>
+            <span id="rotationStatusText" class="font-mono text-xs text-blue-600 dark:text-blue-400 hidden"></span>
+          </div>
+
+          <!-- Thumbnail Preview Box -->
+          <div class="relative rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100/70 dark:bg-slate-950 min-h-[220px] max-h-[360px] flex items-center justify-center overflow-hidden p-3">
+            <div id="previewEmptyState" class="text-center py-8 px-4">
+              <i data-lucide="image" class="w-8 h-8 text-slate-400 dark:text-slate-600 mx-auto mb-2"></i>
+              <p class="text-xs text-slate-500 dark:text-slate-400" data-i18n="previewEmpty">
+                Current page thumbnail appears here while extracting
+              </p>
+            </div>
+            <img id="pagePreviewImg" alt="Current PDF page preview" class="hidden max-h-[332px] w-auto object-contain rounded shadow-sm bg-white" />
+            <div id="previewPageBadge" class="hidden absolute bottom-2.5 right-2.5 px-2.5 py-1 rounded-md bg-slate-900/80 text-white font-mono text-xs tabular-nums"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Column (7/12 on Desktop): Editable Extracted Text Workbench -->
+      <div id="editor-section" class="lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex flex-col min-h-[560px] lg:min-h-[760px]">
+
+        <!-- Editor Header & Utility Toolbar -->
+        <div class="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 space-y-3.5">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 class="font-display text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100" data-i18n="editorHeading">
+                Extracted Text
+              </h2>
+              <div class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+                <span id="charCountDisplay">0 chars</span>
+                <span aria-hidden="true">&middot;</span>
+                <span id="wordCountDisplay">0 words</span>
+                <span aria-hidden="true">&middot;</span>
+                <span id="lineCountDisplay">0 lines</span>
+              </div>
+            </div>
+
+            <!-- Export & Action Buttons -->
+            <div class="flex flex-wrap items-center gap-2">
+              <button
+                id="copyAllBtn"
+                type="button"
+                class="h-10 px-3.5 rounded-lg text-xs sm:text-sm font-medium bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+              >
+                <i data-lucide="copy" class="w-4 h-4 shrink-0"></i>
+                <span data-i18n="copyAllBtn">Copy All Text</span>
+              </button>
+
+              <button
+                id="downloadTxtBtn"
+                type="button"
+                class="h-10 px-3.5 rounded-lg text-xs sm:text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+              >
+                <i data-lucide="download" class="w-4 h-4 shrink-0"></i>
+                <span data-i18n="downloadTxtBtn">Download .TXT</span>
+              </button>
+
+              <button
+                id="clearTextBtn"
+                type="button"
+                class="h-10 px-3 rounded-lg text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                title="Clear text"
+              >
+                <i data-lucide="trash-2" class="w-4 h-4 shrink-0"></i>
+                <span class="hidden sm:inline" data-i18n="clearBtn">Clear</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Burmese Cleanup & Editor Controls Bar -->
+          <div class="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-3">
+              <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                <input id="burmeseCleanupToggle" type="checkbox" checked class="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-600" />
+                <span class="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300" data-i18n="burmeseCleanupToggle">
+                  Auto Burmese Punctuation Cleanup (။ / ၊)
+                </span>
+              </label>
+
+              <button
+                id="applyCleanupNowBtn"
+                type="button"
+                class="h-8 px-2.5 rounded-md text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors whitespace-nowrap"
+                data-i18n="cleanNowBtn"
+              >
+                Clean Existing Text
+              </button>
+            </div>
+
+            <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+              <input id="autoScrollToggle" type="checkbox" checked class="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-600" />
+              <span class="text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap" data-i18n="autoScrollLabel">
+                Auto-scroll
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Editable Textarea -->
+        <div class="flex-1 flex flex-col p-4 sm:p-5">
+          <textarea
+            id="outputTextarea"
+            spellcheck="false"
+            class="font-myanmar flex-1 w-full min-h-[420px] lg:min-h-[600px] p-4 rounded-lg bg-slate-50/70 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm sm:text-base resize-y focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+            placeholder="Extracted book text will stream here in real time. You can edit, clean up, copy, or download as UTF-8 .TXT..."
+            data-i18n-placeholder="textareaPlaceholder"
+          ></textarea>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- How It Works / Guide Section (Clean Editorial 3-Column Strip) -->
+    <section id="guide-section" class="mt-10 pt-8 border-t border-slate-200 dark:border-slate-800">
+      <h2 class="font-display text-lg font-semibold text-slate-900 dark:text-slate-100 mb-5" data-i18n="guideHeading">
+        Hybrid Extraction Workflow
+      </h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
+          <p class="font-mono text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1.5">01</p>
+          <h3 class="font-display text-sm font-semibold text-slate-900 dark:text-slate-100 mb-1.5" data-i18n="guideStep1Title">
+            Fast Local PDF.js Check
+          </h3>
+          <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed" data-i18n="guideStep1Desc">
+            Digital PDFs with embedded Unicode text are extracted instantaneously on your device without touching any API quota.
+          </p>
+        </div>
+
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
+          <p class="font-mono text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1.5">02</p>
+          <h3 class="font-display text-sm font-semibold text-slate-900 dark:text-slate-100 mb-1.5" data-i18n="guideStep2Title">
+            Gemini 2.5 Flash Vision OCR
+          </h3>
+          <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed" data-i18n="guideStep2Desc">
+            Scanned books or legacy non-Unicode Burmese fonts (Zawgyi/WinInnwa) are rendered to crisp canvas images and transcribed into clean Unicode.
+          </p>
+        </div>
+
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
+          <p class="font-mono text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1.5">03</p>
+          <h3 class="font-display text-sm font-semibold text-slate-900 dark:text-slate-100 mb-1.5" data-i18n="guideStep3Title">
+            Automatic Key Rotation
+          </h3>
+          <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed" data-i18n="guideStep3Desc">
+            Paste multiple Gemini API keys in Settings. When one key hits a 429 rate limit, batch processing automatically rotates to the next key.
+          </p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Quiet Footer -->
+  <footer class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 mt-6 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
+    <span data-i18n="footerLeft">Client-side PDF processing via PDF.js · Zero backend dependencies</span>
+    <span data-i18n="footerRight">UTF-8 Burmese &amp; English Export Ready</span>
+  </footer>
+
+  <!-- API Keys Settings Modal -->
+  <div
+    id="apiKeysModal"
+    class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modalTitle"
+  >
+    <div class="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-2.5">
+          <i data-lucide="key-round" class="w-5 h-5 text-blue-600 dark:text-blue-400"></i>
+          <h3 id="modalTitle" class="font-display text-base font-semibold text-slate-900 dark:text-slate-100" data-i18n="modalKeysTitle">
+            Gemini API Keys &amp; Rotation
+          </h3>
+        </div>
+        <button
+          id="closeKeysModalBtn"
+          type="button"
+          class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          aria-label="Close modal"
+        >
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="p-5 space-y-4">
+        <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed" data-i18n="modalKeysDesc">
+          Paste one or more Gemini API keys below (one per line). If a key receives a 429 rate-limit or quota error during batch OCR, the app automatically switches to the next available key.
+        </p>
+
+        <div>
+          <label for="apiKeysInput" class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5" data-i18n="modalKeysLabel">
+            API Keys (One per line)
+          </label>
+          <textarea
+            id="apiKeysInput"
+            rows="5"
+            spellcheck="false"
+            autocomplete="off"
+            placeholder="AIzaSy...&#10;AIzaSy..."
+            class="w-full p-3 rounded-lg font-mono text-xs sm:text-sm bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+          ></textarea>
+        </div>
+
+        <!-- Key Pool Preview -->
+        <div id="keyPoolList" class="hidden space-y-1.5 max-h-36 overflow-y-auto custom-scroll pt-1"></div>
+
+        <div class="rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 text-xs text-slate-600 dark:text-slate-400 leading-relaxed" data-i18n="modalSecurityNote">
+          Stored strictly in your browser's localStorage and sent directly to Google's Gemini API endpoint. Avoid saving keys on shared public computers.
+        </div>
+      </div>
+
+      <div class="px-5 py-4 bg-slate-50 dark:bg-slate-950/60 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+        <button
+          id="resetKeyHealthBtn"
+          type="button"
+          class="h-9 px-3 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/70 dark:hover:bg-slate-800 transition-colors whitespace-nowrap"
+          data-i18n="resetKeyStatusBtn"
+        >
+          Reset Key Statuses
+        </button>
+
+        <div class="flex items-center gap-2">
+          <button
+            id="cancelKeysBtn"
+            type="button"
+            class="h-10 px-4 rounded-lg text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-slate-800 transition-colors whitespace-nowrap"
+            data-i18n="cancelBtn"
+          >
+            Cancel
+          </button>
+          <button
+            id="saveKeysBtn"
+            type="button"
+            class="h-10 px-4 rounded-lg text-xs sm:text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors whitespace-nowrap"
+            data-i18n="saveKeysBtn"
+          >
+            Save Keys
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Offscreen Canvas for High-Res PDF Rendering -->
+  <canvas id="pdfRenderCanvas" class="hidden"></canvas>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm pointer-events-none"></div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      // =========================================================================
+      // 1. PDF.js Worker Configuration (GitHub Pages Safe)
+      // =========================================================================
+      const PDFJS_VERSION = '3.11.174';
+      if (window.pdfjsLib) {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+          `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.worker.min.js`;
+      }
+
+      // =========================================================================
+      // 2. Bilingual Dictionary (English & Myanmar)
+      // =========================================================================
+      const I18N = {
+        en: {
+          brandName: 'SarOak Extractor',
+          navWorkspace: 'Workspace',
+          navOutput: 'Extracted Text',
+          navGuide: 'How It Works',
+          apiKeysBtn: 'API Keys',
+          heroTitle: 'PDF Book Text & Myanmar OCR Studio',
+          heroSubtitle: 'Extract selectable text locally in seconds, or switch to Gemini 2.5 Flash vision OCR for scanned Burmese and English books with automatic API key rotation.',
+          themeDark: 'Dark Mode',
+          themeLight: 'Light Mode',
+          uploadHeading: '01. Source PDF Book',
+          changeFileBtn: 'Change file',
+          dropTitle: 'Drop your PDF book here, or click to browse',
+          dropSubtitle: 'Processed locally in your browser · Supports scanned & digital PDFs',
+          modeHeading: '02. Extraction Mode',
+          modeLocalTab: 'Fast Local',
+          modeOcrTab: 'AI OCR (Gemini)',
+          modeLocalDesc: 'Uses PDF.js directly in your browser with zero API quota. Automatically detects scanned or garbled pages and offers one-click switching to AI OCR.',
+          modeOcrDesc: 'Renders each page to a high-resolution image and sends it to Gemini 2.5 Flash for accurate Burmese & English transcription with automatic key rotation.',
+          ocrQualityLabel: 'Render Resolution',
+          resStandard: '1.5x · Standard (Fast)',
+          resHigh: '2.0x · High (Recommended)',
+          resUltra: '2.5x · Ultra (Small Text)',
+          ocrDelayLabel: 'Delay Between Pages',
+          delayFast: '0.2s · Minimal',
+          delayBalanced: '0.8s · Balanced',
+          delaySafe: '2.0s · Rate-Limit Safe',
+          delaySlow: '4.0s · Conservative',
+          stripHeadersLabel: 'Remove running headers, footers & standalone page numbers',
+          myanmarOptimizeLabel: 'Optimize for Burmese (Myanmar) Unicode & convert legacy Zawgyi glyphs',
+          manageKeysLink: 'Manage API Keys',
+          pageRangeLabel: 'Page Range',
+          rangeAll: 'All Pages',
+          rangeCustom: 'Custom',
+          fromPage: 'From Page',
+          toPage: 'To Page',
+          includePageMarkers: 'Insert page markers (e.g. --- Page 1 ---)',
+          startExtractBtn: 'Extract Text',
+          startOcrBtn: 'Start AI OCR',
+          stopBtn: 'Stop',
+          scannedAlertTitle: 'Scanned or Non-Unicode Pages Detected',
+          switchToOcrBtn: 'Switch to AI OCR & Re-run',
+          dismissBtn: 'Dismiss',
+          previewHeading: '03. Live Progress & Page Preview',
+          statusIdle: 'Ready to extract',
+          previewEmpty: 'Current page thumbnail appears here while extracting',
+          editorHeading: 'Extracted Text',
+          copyAllBtn: 'Copy All Text',
+          downloadTxtBtn: 'Download .TXT',
+          clearBtn: 'Clear',
+          burmeseCleanupToggle: 'Auto Burmese Punctuation Cleanup (။ / ၊)',
+          cleanNowBtn: 'Clean Existing Text',
+          autoScrollLabel: 'Auto-scroll',
+          textareaPlaceholder: 'Extracted book text will stream here in real time. You can edit, clean up, copy, or download as UTF-8 .TXT...',
+          guideHeading: 'Hybrid Extraction Workflow',
+          guideStep1Title: 'Fast Local PDF.js Check',
+          guideStep1Desc: 'Digital PDFs with embedded Unicode text are extracted instantaneously on your device without touching any API quota.',
+          guideStep2Title: 'Gemini 2.5 Flash Vision OCR',
+          guideStep2Desc: 'Scanned books or legacy non-Unicode Burmese fonts (Zawgyi/WinInnwa) are rendered to crisp canvas images and transcribed into clean Unicode.',
+          guideStep3Title: 'Automatic Key Rotation',
+          guideStep3Desc: 'Paste multiple Gemini API keys in Settings. When one key hits a 429 rate limit, batch processing automatically rotates to the next key.',
+          footerLeft: 'Client-side PDF processing via PDF.js · Zero backend dependencies',
+          footerRight: 'UTF-8 Burmese & English Export Ready',
+          modalKeysTitle: 'Gemini API Keys & Rotation',
+          modalKeysDesc: 'Paste one or more Gemini API keys below (one per line). If a key receives a 429 rate-limit or quota error during batch OCR, the app automatically switches to the next available key.',
+          modalKeysLabel: 'API Keys (One per line)',
+          modalSecurityNote: 'Stored strictly in your browser\'s localStorage and sent directly to Google\'s Gemini API endpoint. Avoid saving keys on shared public computers.',
+          resetKeyStatusBtn: 'Reset Key Statuses',
+          cancelBtn: 'Cancel',
+          saveKeysBtn: 'Save Keys',
+          pagesUnit: 'pages',
+          charsUnit: 'chars',
+          wordsUnit: 'words',
+          linesUnit: 'lines',
+          keysConfigured: (n) => `${n} API key${n === 1 ? '' : 's'} configured`,
+          noKeysWarning: 'No API keys saved yet — add at least one key to run AI OCR',
+          processingPage: (cur, total, pNum) => `Processing page ${cur} of ${total} (PDF page ${pNum})...`,
+          completedMsg: (count) => `Completed ${count} page${count === 1 ? '' : 's'}.`,
+          stoppedMsg: (count) => `Stopped after ${count} page${count === 1 ? '' : 's'}.`,
+          scannedDetail: (flaggedCount, totalChecked, samplePages) =>
+            `${flaggedCount} of ${totalChecked} processed page(s) (e.g. p.${samplePages}) appear to be scanned images or legacy non-Unicode encoding. Switch to AI OCR for accurate text extraction.`,
+          toastCopied: 'Copied all text to clipboard.',
+          toastNoText: 'No extracted text to copy or download yet.',
+          toastDownloaded: 'Downloaded UTF-8 .TXT file.',
+          toastCleaned: 'Applied Burmese punctuation & whitespace cleanup.',
+          toastCleared: 'Cleared editor text.',
+          toastKeysSaved: (n) => `Saved ${n} Gemini API key${n === 1 ? '' : 's'}.`,
+          toastKeysReset: 'All API key statuses reset to Ready.',
+          toastInvalidPdf: 'Could not read this file as a valid PDF.',
+          toastNeedKeys: 'Please add at least one Gemini API key in Settings before starting AI OCR.',
+          toastRotating: (fromIdx, toIdx) => `Key #${fromIdx} hit rate limit (429). Rotating to Key #${toIdx}...`,
+          toastAllKeysExhausted: 'All Gemini API keys are currently rate-limited or invalid. Stopped safely—your extracted text is preserved.',
+          keyReady: 'Ready',
+          keyActive: 'Active',
+          keyRateLimited: '429 Limited',
+          keyInvalid: 'Invalid'
+        },
+        my: {
+          brandName: 'SarOak Extractor',
+          navWorkspace: 'လုပ်ငန်းခွင်',
+          navOutput: 'ထုတ်ယူထားသောစာသား',
+          navGuide: 'အသုံးပြုပုံ',
+          apiKeysBtn: 'API ကီးများ',
+          heroTitle: 'PDF စာအုပ် စာသားထုတ်ယူခြင်းနှင့် မြန်မာ OCR စနစ်',
+          heroSubtitle: 'PDF.js ဖြင့် စက်တွင်း၌ လျင်မြန်စွာ စာသားထုတ်ယူပါ — သို့မဟုတ် စကန်ဖတ်ထားသော မြန်မာ/အင်္ဂလိပ် စာအုပ်များအတွက် Gemini 2.5 Flash AI OCR ကို API Key အလိုအလျောက်လဲလှယ်စနစ်ဖြင့် အသုံးပြုပါ။',
+          themeDark: 'အမှောင်စနစ်',
+          themeLight: 'အလင်းစနစ်',
+          uploadHeading: '၀၁. PDF စာအုပ် ရွေးချယ်ရန်',
+          changeFileBtn: 'ဖိုင်ပြောင်းရန်',
+          dropTitle: 'PDF ဖိုင်ကို ဤနေရာသို့ ဆွဲထည့်ပါ သို့မဟုတ် နှိပ်၍ရွေးပါ',
+          dropSubtitle: 'ဘရောက်ဇာအတွင်း၌သာ လုပ်ဆောင်သည် · စကန်စာအုပ်နှင့် ဒစ်ဂျစ်တယ် PDF များရသည်',
+          modeHeading: '၀၂. စာသားထုတ်ယူမည့် စနစ်',
+          modeLocalTab: 'အမြန်စနစ် (Local)',
+          modeOcrTab: 'AI OCR (Gemini)',
+          modeLocalDesc: 'API Quota မကုန်ဘဲ PDF.js ဖြင့် တိုက်ရိုက်ထုတ်ယူသည်။ စကန်ဖတ်ပုံရိပ် သို့မဟုတ် စာသားပျက်နေပါက AI OCR သို့ အလွယ်တကူပြောင်းနိုင်ရန် အသိပေးမည်။',
+          modeOcrDesc: 'စာမျက်နှာတစ်ခုချင်းစီကို ကြည်လင်သောပုံရိပ်အဖြစ် ပြောင်းလဲပြီး မြန်မာ/အင်္ဂလိပ် စာသားတိကျစွာဖတ်ရန် Gemini 2.5 Flash သို့ Key အလိုအလျောက်လဲစနစ်ဖြင့် ပေးပို့သည်။',
+          ocrQualityLabel: 'ပုံရိပ်ကြည်လင်မှု',
+          resStandard: '1.5x · ပုံမှန် (မြန်)',
+          resHigh: '2.0x · အမြင့် (အကြံပြု)',
+          resUltra: '2.5x · အထူးကြည်လင် (စာလုံးသေး)',
+          ocrDelayLabel: 'စာမျက်နှာတစ်ခုနှင့်တစ်ခုကြား နှောင့်နှေးချိန်',
+          delayFast: '0.2s · အမြန်ဆုံး',
+          delayBalanced: '0.8s · မျှတသော',
+          delaySafe: '2.0s · Rate Limit ကာကွယ်',
+          delaySlow: '4.0s · အေးဆေးတည်ငြိမ်',
+          stripHeadersLabel: 'စာမျက်နှာအပေါ်/အောက် ခေါင်းစဉ်နှင့် စာမျက်နှာနံပါတ်များကို ဖယ်ရှားမည်',
+          myanmarOptimizeLabel: 'မြန်မာ Unicode စနစ်တကျဖြစ်စေပြီး ဇော်ဂျီ/စာလုံးဟောင်းများကို ပြောင်းလဲဖတ်ရှုမည်',
+          manageKeysLink: 'API ကီးများ စီမံရန်',
+          pageRangeLabel: 'စာမျက်နှာ အပိုင်းအခြား',
+          rangeAll: 'စာမျက်နှာအားလုံး',
+          rangeCustom: 'စိတ်ကြိုက်ရွေးချယ်',
+          fromPage: 'စတင်မည့် စာမျက်နှာ',
+          toPage: 'ပြီးဆုံးမည့် စာမျက်နှာ',
+          includePageMarkers: 'စာမျက်နှာခွဲအမှတ်အသား ထည့်မည် (ဥပမာ --- Page 1 ---)',
+          startExtractBtn: 'စာသားထုတ်ယူမည်',
+          startOcrBtn: 'AI OCR စတင်မည်',
+          stopBtn: 'ရပ်တန့်မည်',
+          scannedAlertTitle: 'စကန်ဖတ်ပုံရိပ် သို့မဟုတ် Unicode မဟုတ်သော စာမျက်နှာများ တွေ့ရှိသည်',
+          switchToOcrBtn: 'AI OCR သို့ပြောင်း၍ ပြန်လည်ထုတ်ယူမည်',
+          dismissBtn: 'ပိတ်မည်',
+          previewHeading: '၀၃. လုပ်ဆောင်မှုအခြေအနေနှင့် စာမျက်နှာအကြိုကြည့်ရှုမှု',
+          statusIdle: 'စာသားထုတ်ယူရန် အသင့်ဖြစ်သည်',
+          previewEmpty: 'စာသားထုတ်ယူနေစဉ် လက်ရှိစာမျက်နှာပုံရိပ် ဤနေရာတွင် ပေါ်လာမည်',
+          editorHeading: 'ထုတ်ယူရရှိသော စာသား',
+          copyAllBtn: 'အားလုံးကူးယူမည်',
+          downloadTxtBtn: '.TXT ဒေါင်းလုဒ်ဆွဲမည်',
+          clearBtn: 'ရှင်းလင်းမည်',
+          burmeseCleanupToggle: 'မြန်မာပုဒ်ဖြတ် (။ / ၊) စာသားအလိုအလျောက် သန့်စင်မှု',
+          cleanNowBtn: 'လက်ရှိစာသားကို သန့်စင်မည်',
+          autoScrollLabel: 'အလိုအလျောက် အောက်ဆင်းမည်',
+          textareaPlaceholder: 'ထုတ်ယူရရှိသော စာသားများ ဤနေရာတွင် တိုက်ရိုက်ပေါ်လာပါမည်။ တည်းဖြတ်ခြင်း၊ ကူးယူခြင်း သို့မဟုတ် UTF-8 .TXT အဖြစ် ဒေါင်းလုဒ်ဆွဲခြင်းများ ပြုလုပ်နိုင်ပါသည်...',
+          guideHeading: 'စာသားထုတ်ယူမှု အဆင့်ဆင့်',
+          guideStep1Title: 'PDF.js အမြန်စနစ်',
+          guideStep1Desc: 'စာသားရွေးချယ်နိုင်သော ဒစ်ဂျစ်တယ် PDF များကို API ကုန်ကျမှုမရှိဘဲ စက်ထဲတွင် စက္ကန့်ပိုင်းအတွင်း ထုတ်ယူနိုင်သည်။',
+          guideStep2Title: 'Gemini 2.5 Flash Vision OCR',
+          guideStep2Desc: 'စကန်ဖတ်စာအုပ်များနှင့် ဇော်ဂျီ/WinInnwa စာလုံးဟောင်း PDF များကို ပုံရိပ်အဖြစ်ပြောင်းကာ တိကျသော မြန်မာ Unicode စာသားအဖြစ် ပြောင်းလဲပေးသည်။',
+          guideStep3Title: 'API Key အလိုအလျောက်လဲလှယ်စနစ်',
+          guideStep3Desc: 'Settings တွင် Gemini API Key များစွာ ထည့်ထားနိုင်သည်။ Key တစ်ခု 429 Quota ပြည့်သွားပါက နောက် Key သို့ အလိုအလျောက် ပြောင်းလဲလုပ်ဆောင်သည်။',
+          footerLeft: 'PDF.js ဖြင့် ဘရောက်ဇာအတွင်း၌သာ လုပ်ဆောင်သည် · Backend မလိုအပ်ပါ',
+          footerRight: 'UTF-8 မြန်မာ/အင်္ဂလိပ် စာသားဖိုင် ထုတ်ယူနိုင်သည်',
+          modalKeysTitle: 'Gemini API ကီးများနှင့် အလှည့်ကျစနစ်',
+          modalKeysDesc: 'Gemini API Key တစ်ခု သို့မဟုတ် တစ်ခုထက်ပို၍ ထည့်သွင်းပါ (တစ်ကြောင်းလျှင် Key တစ်ခု)။ Batch OCR လုပ်နေစဉ် 429 Rate Limit ဖြစ်ပါက နောက် Key သို့ အလိုအလျောက် ပြောင်းပေးပါမည်။',
+          modalKeysLabel: 'API ကီးများ (တစ်ကြောင်းလျှင် တစ်ခု)',
+          modalSecurityNote: 'သင့်ဘရောက်ဇာ၏ localStorage ထဲတွင်သာ သိမ်းဆည်းပြီး Google Gemini API သို့ တိုက်ရိုက်ပေးပို့ပါသည်။ အများသုံးကွန်ပျူတာများတွင် မသိမ်းဆည်းပါနှင့်။',
+          resetKeyStatusBtn: 'Key အခြေအနေများ ပြန်စမည်',
+          cancelBtn: 'မလုပ်တော့ပါ',
+          saveKeysBtn: 'ကီးများ သိမ်းဆည်းမည်',
+          pagesUnit: 'မျက်နှာ',
+          charsUnit: 'လုံး',
+          wordsUnit: 'လုံး',
+          linesUnit: 'ကြောင်း',
+          keysConfigured: (n) => `API Key ${n} ခု ထည့်သွင်းထားသည်`,
+          noKeysWarning: 'API Key မရှိသေးပါ — AI OCR သုံးရန် အနည်းဆုံး Key တစ်ခု ထည့်ပါ',
+          processingPage: (cur, total, pNum) => `စာမျက်နှာ ${cur} / ${total} လုပ်ဆောင်နေသည် (PDF စာမျက်နှာ ${pNum})...`,
+          completedMsg: (count) => `စာမျက်နှာ ${count} ခု ပြီးဆုံးပါပြီ။`,
+          stoppedMsg: (count) => `စာမျက်နှာ ${count} ခုအပြီးတွင် ရပ်တန့်လိုက်ပါသည်။`,
+          scannedDetail: (flaggedCount, totalChecked, samplePages) =>
+            `စစ်ဆေးခဲ့သော စာမျက်နှာ ${totalChecked} ခုအနက် ${flaggedCount} ခု (ဥပမာ စာမျက်နှာ ${samplePages}) သည် စကန်ဖတ်ပုံရိပ် သို့မဟုတ် Unicode မဟုတ်သော စာလုံးဟောင်းများ ဖြစ်နေပုံရသည်။ တိကျသောစာသားရရန် AI OCR သို့ ပြောင်းလဲပါ။`,
+          toastCopied: 'စာသားအားလုံးကို Clipboard သို့ ကူးယူပြီးပါပြီ။',
+          toastNoText: 'ကူးယူရန် သို့မဟုတ် ဒေါင်းလုဒ်ဆွဲရန် စာသားမရှိသေးပါ။',
+          toastDownloaded: 'UTF-8 .TXT ဖိုင်ကို ဒေါင်းလုဒ်ဆွဲပြီးပါပြီ။',
+          toastCleaned: 'မြန်မာပုဒ်ဖြတ်နှင့် စာသားအကွာအဝေးများကို သန့်စင်ပြီးပါပြီ။',
+          toastCleared: 'စာသားများကို ရှင်းလင်းပြီးပါပြီ။',
+          toastKeysSaved: (n) => `Gemini API Key ${n} ခု သိမ်းဆည်းပြီးပါပြီ။`,
+          toastKeysReset: 'API Key အခြေအနေအားလုံးကို အသင့်အနေအထားသို့ ပြန်လည်သတ်မှတ်ပြီးပါပြီ။',
+          toastInvalidPdf: 'ဤဖိုင်ကို PDF အဖြစ် ဖတ်ရှု၍မရပါ။',
+          toastNeedKeys: 'AI OCR စတင်ရန် Settings ထဲတွင် Gemini API Key အနည်းဆုံးတစ်ခု ထည့်သွင်းပါ။',
+          toastRotating: (fromIdx, toIdx) => `Key #${fromIdx} Rate Limit (429) ပြည့်သွား၍ Key #${toIdx} သို့ ပြောင်းလဲနေသည်...`,
+          toastAllKeysExhausted: 'Gemini API Key အားလုံး Rate Limit ပြည့်နေပါသည် သို့မဟုတ် မှားယွင်းနေပါသည်။ ထုတ်ယူပြီးသားစာသားများကို ထိန်းသိမ်းထားပါသည်။',
+          keyReady: 'အသင့်',
+          keyActive: 'သုံးနေဆဲ',
+          keyRateLimited: '429 ပြည့်',
+          keyInvalid: 'မမှန်ကန်'
+        }
+      };
+
+      // =========================================================================
+      // 3. Application State
+      // =========================================================================
+      const STORAGE_KEYS = {
+        LANG: 'saroak_lang',
+        THEME: 'saroak_theme',
+        API_KEYS: 'saroak_gemini_api_keys'
+      };
+
+      const state = {
+        lang: localStorage.getItem(STORAGE_KEYS.LANG) === 'my' ? 'my' : 'en',
+        pdfDoc: null,
+        fileName: '',
+        fileSize: 0,
+        totalPages: 0,
+        mode: 'local', // 'local' | 'ocr'
+        rangeMode: 'all', // 'all' | 'custom'
+        isProcessing: false,
+        abortRequested: false,
+        apiKeys: [], // array of { key: string, status: 'ready' | 'active' | 'limited' | 'invalid' }
+        currentKeyIndex: 0
+      };
+
+      // =========================================================================
+      // 4. DOM References
+      // =========================================================================
+      const els = {
+        langEnBtn: document.getElementById('langEnBtn'),
+        langMyBtn: document.getElementById('langMyBtn'),
+        themeToggleBtn: document.getElementById('themeToggleBtn'),
+        themeLabel: document.getElementById('themeLabel'),
+        openKeysModalBtn: document.getElementById('openKeysModalBtn'),
+        inlineManageKeysBtn: document.getElementById('inlineManageKeysBtn'),
+        headerKeyCount: document.getElementById('headerKeyCount'),
+        ocrKeyStatusText: document.getElementById('ocrKeyStatusText'),
+
+        dropZone: document.getElementById('dropZone'),
+        pdfFileInput: document.getElementById('pdfFileInput'),
+        clearFileBtn: document.getElementById('clearFileBtn'),
+        fileInfoBox: document.getElementById('fileInfoBox'),
+        fileNameDisplay: document.getElementById('fileNameDisplay'),
+        fileSizeDisplay: document.getElementById('fileSizeDisplay'),
+        filePagesDisplay: document.getElementById('filePagesDisplay'),
+
+        modeLocalBtn: document.getElementById('modeLocalBtn'),
+        modeOcrBtn: document.getElementById('modeOcrBtn'),
+        modeDescription: document.getElementById('modeDescription'),
+        ocrOptionsPanel: document.getElementById('ocrOptionsPanel'),
+        ocrScaleSelect: document.getElementById('ocrScaleSelect'),
+        ocrDelaySelect: document.getElementById('ocrDelaySelect'),
+        stripHeadersCheckbox: document.getElementById('stripHeadersCheckbox'),
+        ocrLanguageHintCheckbox: document.getElementById('ocrLanguageHintCheckbox'),
+
+        rangeAllBtn: document.getElementById('rangeAllBtn'),
+        rangeCustomBtn: document.getElementById('rangeCustomBtn'),
+        customRangeInputs: document.getElementById('customRangeInputs'),
+        startPageInput: document.getElementById('startPageInput'),
+        endPageInput: document.getElementById('endPageInput'),
+        pageMarkersCheckbox: document.getElementById('pageMarkersCheckbox'),
+
+        startExtractBtn: document.getElementById('startExtractBtn'),
+        startBtnLabel: document.getElementById('startBtnLabel'),
+        stopExtractBtn: document.getElementById('stopExtractBtn'),
+
+        scannedAlertBanner: document.getElementById('scannedAlertBanner'),
+        scannedAlertDesc: document.getElementById('scannedAlertDesc'),
+        switchToOcrActionBtn: document.getElementById('switchToOcrActionBtn'),
+        dismissScannedAlertBtn: document.getElementById('dismissScannedAlertBtn'),
+
+        progressPercent: document.getElementById('progressPercent'),
+        progressBarFill: document.getElementById('progressBarFill'),
+        progressStatusText: document.getElementById('progressStatusText'),
+        rotationStatusText: document.getElementById('rotationStatusText'),
+        previewEmptyState: document.getElementById('previewEmptyState'),
+        pagePreviewImg: document.getElementById('pagePreviewImg'),
+        previewPageBadge: document.getElementById('previewPageBadge'),
+
+        outputTextarea: document.getElementById('outputTextarea'),
+        charCountDisplay: document.getElementById('charCountDisplay'),
+        wordCountDisplay: document.getElementById('wordCountDisplay'),
+        lineCountDisplay: document.getElementById('lineCountDisplay'),
+        copyAllBtn: document.getElementById('copyAllBtn'),
+        downloadTxtBtn: document.getElementById('downloadTxtBtn'),
+        clearTextBtn: document.getElementById('clearTextBtn'),
+        burmeseCleanupToggle: document.getElementById('burmeseCleanupToggle'),
+        applyCleanupNowBtn: document.getElementById('applyCleanupNowBtn'),
+        autoScrollToggle: document.getElementById('autoScrollToggle'),
+
+        apiKeysModal: document.getElementById('apiKeysModal'),
+        closeKeysModalBtn: document.getElementById('closeKeysModalBtn'),
+        cancelKeysBtn: document.getElementById('cancelKeysBtn'),
+        saveKeysBtn: document.getElementById('saveKeysBtn'),
+        resetKeyHealthBtn: document.getElementById('resetKeyHealthBtn'),
+        apiKeysInput: document.getElementById('apiKeysInput'),
+        keyPoolList: document.getElementById('keyPoolList'),
+
+        pdfRenderCanvas: document.getElementById('pdfRenderCanvas'),
+        toastContainer: document.getElementById('toastContainer')
+      };
+
+      // =========================================================================
+      // 5. Utilities: Toast, Theme, Language, Counters, Burmese Cleanup
+      // =========================================================================
+      function t(key, ...args) {
+        const dict = I18N[state.lang] || I18N.en;
+        const val = dict[key] !== undefined ? dict[key] : I18N.en[key];
+        return typeof val === 'function' ? val(...args) : (val || key);
+      }
+
+      function showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        const colors = {
+          info: 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 border-slate-800 dark:border-slate-200',
+          success: 'bg-emerald-700 text-white border-emerald-600',
+          warning: 'bg-amber-600 text-white border-amber-500',
+          error: 'bg-red-600 text-white border-red-500'
+        };
+        toast.className = `pointer-events-auto px-4 py-3 rounded-lg border shadow-lg text-xs sm:text-sm font-medium transition-all duration-200 transform translate-y-2 opacity-0 ${colors[type] || colors.info}`;
+        toast.textContent = message;
+        els.toastContainer.appendChild(toast);
+
+        requestAnimationFrame(() => {
+          toast.classList.remove('translate-y-2', 'opacity-0');
+        });
+
+        setTimeout(() => {
+          toast.classList.add('translate-y-2', 'opacity-0');
+          setTimeout(() => toast.remove(), 220);
+        }, 3400);
+      }
+
+      function updateThemeUI() {
+        const isDark = document.documentElement.classList.contains('dark');
+        els.themeLabel.textContent = isDark ? t('themeLight') : t('themeDark');
+      }
+
+      function toggleTheme() {
+        const isDark = document.documentElement.classList.toggle('dark');
+        try {
+          localStorage.setItem(STORAGE_KEYS.THEME, isDark ? 'dark' : 'light');
+        } catch (e) {}
+        updateThemeUI();
+      }
+
+      function applyLanguage() {
+        document.documentElement.lang = state.lang === 'my' ? 'my' : 'en';
+
+        // Static data-i18n elements
+        document.querySelectorAll('[data-i18n]').forEach((el) => {
+          const key = el.getAttribute('data-i18n');
+          if (key === 'startExtractBtn') {
+            el.textContent = state.mode === 'ocr' ? t('startOcrBtn') : t('startExtractBtn');
+          } else {
+            el.textContent = t(key);
+          }
+        });
+
+        // Placeholders
+        document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+          const key = el.getAttribute('data-i18n-placeholder');
+          el.setAttribute('placeholder', t(key));
+        });
+
+        // Language button active state
+        const activeClasses = 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm';
+        const inactiveClasses = 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100';
+
+        els.langEnBtn.className = `h-8 px-3 rounded-md text-xs font-medium transition-colors whitespace-nowrap shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${state.lang === 'en' ? activeClasses : inactiveClasses}`;
+        els.langMyBtn.className = `h-8 px-3 rounded-md text-xs font-medium transition-colors whitespace-nowrap shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${state.lang === 'my' ? activeClasses : inactiveClasses}`;
+
+        // Dynamic fields
+        updateThemeUI();
+        updateModeUI();
+        updateFileMetadataDisplay();
+        updateEditorStats();
+        updateKeyStatusSummary();
+        renderKeyPoolList();
+      }
+
+      function setLanguage(lang) {
+        state.lang = lang === 'my' ? 'my' : 'en';
+        try {
+          localStorage.setItem(STORAGE_KEYS.LANG, state.lang);
+        } catch (e) {}
+        applyLanguage();
+      }
+
+      function updateEditorStats() {
+        const val = els.outputTextarea.value || '';
+        const chars = val.length;
+        const words = val.trim() ? val.trim().split(/\s+/).length : 0;
+        const lines = val ? val.split(/\r\n|\r|\n/).length : 0;
+
+        els.charCountDisplay.textContent = `${chars.toLocaleString()} ${t('charsUnit')}`;
+        els.wordCountDisplay.textContent = `${words.toLocaleString()} ${t('wordsUnit')}`;
+        els.lineCountDisplay.textContent = `${lines.toLocaleString()} ${t('linesUnit')}`;
+      }
+
+      /**
+       * Burmese (Myanmar) text normalization & punctuation cleanup:
+       * - Removes stray zero-width spaces (\u200B, \uFEFF)
+       * - Removes spaces before Myanmar punctuation ။ (\u104B) and ၊ (\u104A)
+       * - Ensures a single space after ။ / ၊ if immediately followed by a non-whitespace character (not closing quotes/brackets)
+       * - Collapses multiple horizontal spaces into one and excessive blank lines (>2) into 2
+       */
+      function cleanBurmeseText(rawText) {
+        if (!rawText) return '';
+        let text = rawText
+          .replace(/\uFEFF/g, '')
+          .replace(/\u200B+/g, '')
+          .replace(/[ \t]+([။၊])/g, '$1')
+          .replace(/([။၊])([^\s\n\r)"'”’\]])/g, '$1 $2')
+          .replace(/[ \t]{2,}/g, ' ')
+          .replace(/[ \t]+$/gm, '')
+          .replace(/\n{3,}/g, '\n\n');
+        return text.trim();
+      }
+
+      // =========================================================================
+      // 6. API Key Storage & Multi-Key Rotation Engine
+      // =========================================================================
+      function loadApiKeys() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEYS.API_KEYS) || '';
+          const lines = parseKeyLines(raw);
+          state.apiKeys = lines.map((k) => ({ key: k, status: 'ready' }));
+          els.apiKeysInput.value = lines.join('\n');
+        } catch (e) {
+          state.apiKeys = [];
+        }
+        state.currentKeyIndex = 0;
+        updateKeyStatusSummary();
+        renderKeyPoolList();
+      }
+
+      function parseKeyLines(rawText) {
+        const seen = new Set();
+        return rawText
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter((line) => line.length > 0 && !line.startsWith('#'))
+          .filter((line) => {
+            if (seen.has(line)) return false;
+            seen.add(line);
+            return true;
+          });
+      }
+
+      function saveApiKeysFromModal() {
+        const keys = parseKeyLines(els.apiKeysInput.value);
+        try {
+          localStorage.setItem(STORAGE_KEYS.API_KEYS, keys.join('\n'));
+        } catch (e) {}
+        state.apiKeys = keys.map((k) => ({ key: k, status: 'ready' }));
+        state.currentKeyIndex = 0;
+        updateKeyStatusSummary();
+        renderKeyPoolList();
+        closeApiKeysModal();
+        showToast(t('toastKeysSaved', keys.length), 'success');
+      }
+
+      function maskKey(key) {
+        if (key.length <= 10) return '••••••••';
+        return `${key.slice(0, 6)}••••••${key.slice(-4)}`;
+      }
+
+      function updateKeyStatusSummary() {
+        const count = state.apiKeys.length;
+        els.headerKeyCount.textContent = `(${count})`;
+        if (count === 0) {
+          els.ocrKeyStatusText.textContent = t('noKeysWarning');
+          els.ocrKeyStatusText.className = 'text-amber-600 dark:text-amber-400 font-medium';
+        } else {
+          const readyCount = state.apiKeys.filter((k) => k.status === 'ready' || k.status === 'active').length;
+          els.ocrKeyStatusText.textContent = `${t('keysConfigured', count)} (${readyCount} ${t('keyReady')})`;
+          els.ocrKeyStatusText.className = 'text-slate-600 dark:text-slate-400 tabular-nums';
+        }
+      }
+
+      function renderKeyPoolList() {
+        if (!state.apiKeys.length) {
+          els.keyPoolList.classList.add('hidden');
+          els.keyPoolList.innerHTML = '';
+          return;
+        }
+        els.keyPoolList.classList.remove('hidden');
+        els.keyPoolList.innerHTML = state.apiKeys
+          .map((item, idx) => {
+            const statusMap = {
+              ready: { label: t('keyReady'), cls: 'text-emerald-700 dark:text-emerald-400' },
+              active: { label: t('keyActive'), cls: 'text-blue-600 dark:text-blue-400 font-semibold' },
+              limited: { label: t('keyRateLimited'), cls: 'text-amber-600 dark:text-amber-400' },
+              invalid: { label: t('keyInvalid'), cls: 'text-red-600 dark:text-red-400' }
+            };
+            const st = statusMap[item.status] || statusMap.ready;
+            return `
+              <div class="flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs">
+                <span class="font-mono text-slate-700 dark:text-slate-300 tabular-nums">#${idx + 1} · ${maskKey(item.key)}</span>
+                <span class="${st.cls}">${st.label}</span>
+              </div>
+            `;
+          })
+          .join('');
+      }
+
+      function openApiKeysModal() {
+        els.apiKeysInput.value = state.apiKeys.map((k) => k.key).join('\n');
+        renderKeyPoolList();
+        els.apiKeysModal.classList.remove('hidden');
+        els.apiKeysInput.focus();
+      }
+
+      function closeApiKeysModal() {
+        els.apiKeysModal.classList.add('hidden');
+      }
+
+      // =========================================================================
+      // 7. Mode & Range UI State Management
+      // =========================================================================
+      function updateModeUI() {
+        const activeTabCls = 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm';
+        const inactiveTabCls = 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100';
+
+        if (state.mode === 'local') {
+          els.modeLocalBtn.className = `min-h-[42px] px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${activeTabCls}`;
+          els.modeOcrBtn.className = `min-h-[42px] px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${inactiveTabCls}`;
+          els.modeLocalBtn.setAttribute('aria-selected', 'true');
+          els.modeOcrBtn.setAttribute('aria-selected', 'false');
+          els.modeDescription.textContent = t('modeLocalDesc');
+          els.ocrOptionsPanel.classList.add('hidden');
+          els.startBtnLabel.textContent = t('startExtractBtn');
+        } else {
+          els.modeLocalBtn.className = `min-h-[42px] px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${inactiveTabCls}`;
+          els.modeOcrBtn.className = `min-h-[42px] px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${activeTabCls}`;
+          els.modeLocalBtn.setAttribute('aria-selected', 'false');
+          els.modeOcrBtn.setAttribute('aria-selected', 'true');
+          els.modeDescription.textContent = t('modeOcrDesc');
+          els.ocrOptionsPanel.classList.remove('hidden');
+          els.startBtnLabel.textContent = t('startOcrBtn');
+        }
+      }
+
+      function updateRangeUI() {
+        const activeCls = 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm';
+        const inactiveCls = 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100';
+
+        if (state.rangeMode === 'all') {
+          els.rangeAllBtn.className = `px-2.5 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap ${activeCls}`;
+          els.rangeCustomBtn.className = `px-2.5 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap ${inactiveCls}`;
+          els.customRangeInputs.classList.add('opacity-55');
+          els.startPageInput.disabled = true;
+          els.endPageInput.disabled = true;
+          if (state.totalPages > 0) {
+            els.startPageInput.value = '1';
+            els.endPageInput.value = String(state.totalPages);
+          }
+        } else {
+          els.rangeAllBtn.className = `px-2.5 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap ${inactiveCls}`;
+          els.rangeCustomBtn.className = `px-2.5 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap ${activeCls}`;
+          els.customRangeInputs.classList.remove('opacity-55');
+          els.startPageInput.disabled = false;
+          els.endPageInput.disabled = false;
+        }
+      }
+
+      function updateFileMetadataDisplay() {
+        if (!state.pdfDoc) {
+          els.fileInfoBox.classList.add('hidden');
+          els.clearFileBtn.classList.add('hidden');
+          return;
+        }
+        els.fileInfoBox.classList.remove('hidden');
+        els.clearFileBtn.classList.remove('hidden');
+        els.fileNameDisplay.textContent = state.fileName;
+        const sizeMB = (state.fileSize / (1024 * 1024)).toFixed(2);
+        els.fileSizeDisplay.textContent = `${sizeMB} MB`;
+        els.filePagesDisplay.textContent = `${state.totalPages} ${t('pagesUnit')}`;
+      }
+
+      function setProcessingUI(running) {
+        state.isProcessing = running;
+        els.startExtractBtn.disabled = running || !state.pdfDoc;
+        els.modeLocalBtn.disabled = running;
+        els.modeOcrBtn.disabled = running;
+        els.clearFileBtn.disabled = running;
+
+        if (running) {
+          els.startExtractBtn.classList.add('hidden');
+          els.stopExtractBtn.classList.remove('hidden');
+        } else {
+          els.startExtractBtn.classList.remove('hidden');
+          els.stopExtractBtn.classList.add('hidden');
+          els.rotationStatusText.classList.add('hidden');
+          els.rotationStatusText.textContent = '';
+        }
+      }
+
+      // =========================================================================
+      // 8. PDF Loading & Page Rendering
+      // =========================================================================
+      async function handleFileSelected(file) {
+        if (!file) return;
+        if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+          showToast(t('toastInvalidPdf'), 'error');
+          return;
+        }
+
+        try {
+          const arrayBuffer = await file.arrayBuffer();
+          const loadingTask = window.pdfjsLib.getDocument({
+            data: new Uint8Array(arrayBuffer),
+            cMapUrl: `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/cmaps/`,
+            cMapPacked: true
+          });
+
+          const pdfDoc = await loadingTask.promise;
+          state.pdfDoc = pdfDoc;
+          state.fileName = file.name;
+          state.fileSize = file.size;
+          state.totalPages = pdfDoc.numPages;
+
+          els.startPageInput.min = '1';
+          els.startPageInput.max = String(pdfDoc.numPages);
+          els.endPageInput.min = '1';
+          els.endPageInput.max = String(pdfDoc.numPages);
+
+          if (state.rangeMode === 'all') {
+            els.startPageInput.value = '1';
+            els.endPageInput.value = String(pdfDoc.numPages);
+          } else {
+            els.startPageInput.value = '1';
+            els.endPageInput.value = String(Math.min(10, pdfDoc.numPages));
+          }
+
+          els.startExtractBtn.disabled = false;
+          els.scannedAlertBanner.classList.add('hidden');
+          updateFileMetadataDisplay();
+          updateRangeUI();
+
+          // Render page 1 thumbnail immediately for responsive feedback
+          const previewUrl = await renderPageToDataUrl(1, 0.85, 'image/jpeg', 0.8);
+          showPagePreview(previewUrl, 1);
+          setProgress(0, t('statusIdle'));
+        } catch (err) {
+          console.error(err);
+          showToast(t('toastInvalidPdf'), 'error');
+        }
+      }
+
+      function clearLoadedFile() {
+        if (state.isProcessing) return;
+        state.pdfDoc = null;
+        state.fileName = '';
+        state.fileSize = 0;
+        state.totalPages = 0;
+        els.pdfFileInput.value = '';
+        els.startExtractBtn.disabled = true;
+        els.scannedAlertBanner.classList.add('hidden');
+        els.pagePreviewImg.classList.add('hidden');
+        els.previewPageBadge.classList.add('hidden');
+        els.previewEmptyState.classList.remove('hidden');
+        setProgress(0, t('statusIdle'));
+        updateFileMetadataDisplay();
+      }
+
+      async function renderPageToDataUrl(pageNumber, scale = 2.0, mimeType = 'image/jpeg', quality = 0.9) {
+        const page = await state.pdfDoc.getPage(pageNumber);
+        const viewport = page.getViewport({ scale });
+        const canvas = els.pdfRenderCanvas;
+        const ctx = canvas.getContext('2d', { willReadFrequently: false });
+
+        canvas.width = Math.floor(viewport.width);
+        canvas.height = Math.floor(viewport.height);
+
+        // Paint crisp white background (critical for transparent PDFs before JPEG encoding)
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        await page.render({
+          canvasContext: ctx,
+          viewport
+        }).promise;
+
+        return canvas.toDataURL(mimeType, quality);
+      }
+
+      function showPagePreview(dataUrl, pageNumber) {
+        els.previewEmptyState.classList.add('hidden');
+        els.pagePreviewImg.src = dataUrl;
+        els.pagePreviewImg.classList.remove('hidden');
+        els.previewPageBadge.textContent = `Page ${pageNumber} / ${state.totalPages}`;
+        els.previewPageBadge.classList.remove('hidden');
+      }
+
+      function setProgress(percent, statusMsg) {
+        const clamped = Math.max(0, Math.min(100, Math.round(percent)));
+        els.progressBarFill.style.width = `${clamped}%`;
+        els.progressPercent.textContent = `${clamped}%`;
+        if (statusMsg !== undefined) {
+          els.progressStatusText.textContent = statusMsg;
+        }
+      }
+
+      function getValidatedPageRange() {
+        if (!state.pdfDoc) return { start: 1, end: 1 };
+        if (state.rangeMode === 'all') {
+          return { start: 1, end: state.totalPages };
+        }
+        let start = parseInt(els.startPageInput.value, 10) || 1;
+        let end = parseInt(els.endPageInput.value, 10) || state.totalPages;
+        start = Math.max(1, Math.min(start, state.totalPages));
+        end = Math.max(start, Math.min(end, state.totalPages));
+        els.startPageInput.value = String(start);
+        els.endPageInput.value = String(end);
+        return { start, end };
+      }
+
+      // =========================================================================
+      // 9. Scanned / Garbled Text Heuristic (including legacy Myanmar fonts)
+      // =========================================================================
+      function isPageTextEmptyOrGarbled(text) {
+        const trimmed = (text || '').trim();
+        if (trimmed.length < 20) return true;
+
+        // Replacement characters or Private Use Area glyphs
+        const badMatches = trimmed.match(/[\uFFFD\uE000-\uF8FF\x00-\x08\x0B\x0C\x0E-\x1F]/g);
+        if (badMatches && badMatches.length / trimmed.length > 0.05) {
+          return true;
+        }
+
+        // Detect suspicious legacy ASCII-mapped Burmese PDFs (WinInnwa / CE fonts)
+        // where high density of mixed-case consonant-clusters + symbols like uRefawmf / jrefrm appear
+        const asciiSymbols = trimmed.match(/[¤¦¨¬¯±²³µ¶¹º¼½¾¿×÷]/g);
+        if (asciiSymbols && asciiSymbols.length / trimmed.length > 0.03) {
+          return true;
+        }
+
+        return false;
+      }
+
+      // =========================================================================
+      // 10. Mode 1: Fast Local PDF.js Extraction
+      // =========================================================================
+      function reconstructLinesFromPdfItems(items) {
+        if (!items || !items.length) return '';
+        let output = '';
+        let lastY = null;
+        let lastXEnd = null;
+
+        for (const item of items) {
+          if (!item.str) {
+            if (item.hasEOL) {
+              output += '\n';
+              lastY = null;
+            }
+            continue;
+          }
+          const tx = item.transform;
+          const x = tx ? tx[4] : 0;
+          const y = tx ? tx[5] : 0;
+          const width = item.width || 0;
+
+          if (lastY !== null) {
+            const dy = Math.abs(y - lastY);
+            if (dy > 6) {
+              output += dy > 18 ? '\n\n' : '\n';
+            } else if (lastXEnd !== null && x - lastXEnd > 2 && !output.endsWith(' ') && !item.str.startsWith(' ')) {
+              output += ' ';
+            }
+          }
+
+          output += item.str;
+          lastY = y;
+          lastXEnd = x + width;
+          if (item.hasEOL) {
+            output += '\n';
+            lastY = null;
+            lastXEnd = null;
+          }
+        }
+        return output;
+      }
+
+      async function runLocalExtraction() {
+        const { start, end } = getValidatedPageRange();
+        const totalToProcess = end - start + 1;
+        const flaggedPages = [];
+
+        els.scannedAlertBanner.classList.add('hidden');
+        setProcessingUI(true);
+
+        try {
+          for (let idx = 0; idx < totalToProcess; idx++) {
+            if (state.abortRequested) {
+              setProgress(((idx) / totalToProcess) * 100, t('stoppedMsg', idx));
+              break;
+            }
+
+            const pageNum = start + idx;
+            setProgress((idx / totalToProcess) * 100, t('processingPage', idx + 1, totalToProcess, pageNum));
+
+            // Render lightweight preview thumbnail
+            const previewUrl = await renderPageToDataUrl(pageNum, 0.75, 'image/jpeg', 0.75);
+            showPagePreview(previewUrl, pageNum);
+
+            const page = await state.pdfDoc.getPage(pageNum);
+            const textContent = await page.getTextContent();
+            let pageText = reconstructLinesFromPdfItems(textContent.items);
+
+            if (isPageTextEmptyOrGarbled(pageText)) {
+              flaggedPages.push(pageNum);
+            }
+
+            if (els.burmeseCleanupToggle.checked) {
+              pageText = cleanBurmeseText(pageText);
+            }
+
+            appendExtractedPageText(pageNum, pageText);
+
+            // Yield to main thread so UI stays responsive
+            await new Promise((r) => setTimeout(r, 12));
+          }
+
+          if (!state.abortRequested) {
+            setProgress(100, t('completedMsg', totalToProcess));
+          }
+
+          if (flaggedPages.length > 0) {
+            const sample = flaggedPages.slice(0, 5).join(', ') + (flaggedPages.length > 5 ? '...' : '');
+            els.scannedAlertDesc.textContent = t('scannedDetail', flaggedPages.length, totalToProcess, sample);
+            els.scannedAlertBanner.classList.remove('hidden');
+          }
+        } catch (err) {
+          console.error(err);
+          showToast(err.message || 'Extraction error', 'error');
+        } finally {
+          setProcessingUI(false);
+        }
+      }
+
+      // =========================================================================
+      // 11. Mode 2: Gemini 2.5 Flash Vision OCR with Multi-Key Rotation
+      // =========================================================================
+      function buildOcrPrompt() {
+        const stripHeaders = els.stripHeadersCheckbox.checked;
+        const myanmarOpt = els.ocrLanguageHintCheckbox.checked;
+
+        let prompt = [
+          'Perform exact, verbatim OCR transcription of all body text visible in this book page image.',
+          'Rules:',
+          '1. Output ONLY the transcribed text. Do not add commentary, markdown code fences, or explanations.',
+          '2. Preserve natural paragraph breaks and headings accurately.'
+        ];
+
+        if (myanmarOpt) {
+          prompt.push(
+            '3. For Burmese (Myanmar) script, output strictly standard Myanmar Unicode (UTF-8, Pyidaungsu order). Even if the original book uses Zawgyi or older fonts, convert and output clean standard Unicode Myanmar accurately, including stacked consonants (ဝစ္စနှစ်လုံးပေါက်, ပါဌ်ဆင့်) and punctuation (။ and ၊).',
+            '4. Preserve any English words, numbers, or mixed Burmese-English terms accurately.'
+          );
+        } else {
+          prompt.push('3. Preserve the exact original language, spelling, and punctuation.');
+        }
+
+        if (stripHeaders) {
+          prompt.push('5. Omit running page headers, footers, and standalone page numbers.');
+        }
+
+        return prompt.join('\n');
+      }
+
+      async function callGeminiOcrWithRotation(base64Data, mimeType, promptText) {
+        const totalKeys = state.apiKeys.length;
+        if (totalKeys === 0) {
+          throw new Error('NO_API_KEYS');
+        }
+
+        let attempts = 0;
+        let idx = state.currentKeyIndex % totalKeys;
+
+        while (attempts < totalKeys) {
+          if (state.abortRequested) {
+            throw new Error('ABORTED');
+          }
+
+          const keyObj = state.apiKeys[idx];
+
+          // Skip permanently invalid keys if other keys exist
+          if (keyObj.status === 'invalid') {
+            idx = (idx + 1) % totalKeys;
+            attempts++;
+            continue;
+          }
+
+          // Mark current active
+          state.apiKeys.forEach((k, i) => {
+            if (k.status === 'active') k.status = 'ready';
+          });
+          keyObj.status = 'active';
+          state.currentKeyIndex = idx;
+          renderKeyPoolList();
+
+          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(keyObj.key)}`;
+
+          const payload = {
+            contents: [
+              {
+                parts: [
+                  { text: promptText },
+                  {
+                    inlineData: {
+                      mimeType,
+                      data: base64Data
+                    }
+                  }
+                ]
+              }
+            ],
+            generationConfig: {
+              temperature: 0.1
+            }
+          };
+
+          let response;
+          try {
+            response = await fetch(endpoint, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+          } catch (networkErr) {
+            throw new Error(`Network error: ${networkErr.message}`);
+          }
+
+          if (response.ok) {
+            const data = await response.json();
+            const text =
+              data?.candidates?.[0]?.content?.parts
+                ?.map((p) => p.text || '')
+                .join('') || '';
+            return text.trim();
+          }
+
+          // Parse error body
+          let errMsg = `HTTP ${response.status}`;
+          try {
+            const errJson = await response.json();
+            errMsg = errJson?.error?.message || errMsg;
+          } catch (e) {}
+
+          const isQuotaOrRateLimit =
+            response.status === 429 ||
+            response.status === 503 ||
+            /quota|rate limit|resource_exhausted/i.test(errMsg);
+
+          const isInvalidKey =
+            response.status === 400 ||
+            response.status === 403 ||
+            /api key not valid|api_key_invalid|permission_denied/i.test(errMsg);
+
+          if (isQuotaOrRateLimit || isInvalidKey) {
+            keyObj.status = isInvalidKey ? 'invalid' : 'limited';
+            renderKeyPoolList();
+            updateKeyStatusSummary();
+
+            const nextIdx = (idx + 1) % totalKeys;
+            if (attempts + 1 < totalKeys) {
+              const msg = t('toastRotating', idx + 1, nextIdx + 1);
+              els.rotationStatusText.textContent = msg;
+              els.rotationStatusText.classList.remove('hidden');
+              showToast(msg, 'warning');
+              idx = nextIdx;
+              attempts++;
+              await new Promise((r) => setTimeout(r, 400));
+              continue;
+            } else {
+              throw new Error('ALL_KEYS_EXHAUSTED');
+            }
+          }
+
+          throw new Error(errMsg);
+        }
+
+        throw new Error('ALL_KEYS_EXHAUSTED');
+      }
+
+      async function runGeminiOcrExtraction() {
+        if (!state.apiKeys.length) {
+          showToast(t('toastNeedKeys'), 'warning');
+          openApiKeysModal();
+          return;
+        }
+
+        const { start, end } = getValidatedPageRange();
+        const totalToProcess = end - start + 1;
+        const scale = parseFloat(els.ocrScaleSelect.value) || 2.0;
+        const delayMs = parseInt(els.ocrDelaySelect.value, 10) || 800;
+        const promptText = buildOcrPrompt();
+
+        els.scannedAlertBanner.classList.add('hidden');
+        setProcessingUI(true);
+
+        try {
+          for (let idx = 0; idx < totalToProcess; idx++) {
+            if (state.abortRequested) {
+              setProgress((idx / totalToProcess) * 100, t('stoppedMsg', idx));
+              break;
+            }
+
+            const pageNum = start + idx;
+            setProgress((idx / totalToProcess) * 100, t('processingPage', idx + 1, totalToProcess, pageNum));
+
+            // Render high-res JPEG for OCR + preview
+            const dataUrl = await renderPageToDataUrl(pageNum, scale, 'image/jpeg', 0.9);
+            showPagePreview(dataUrl, pageNum);
+            const base64Data = dataUrl.split(',')[1];
+
+            let extracted = await callGeminiOcrWithRotation(base64Data, 'image/jpeg', promptText);
+
+            if (els.burmeseCleanupToggle.checked) {
+              extracted = cleanBurmeseText(extracted);
+            }
+
+            appendExtractedPageText(pageNum, extracted);
+
+            if (idx < totalToProcess - 1 && !state.abortRequested && delayMs > 0) {
+              await new Promise((r) => setTimeout(r, delayMs));
+            }
+          }
+
+          if (!state.abortRequested) {
+            setProgress(100, t('completedMsg', totalToProcess));
+          }
+        } catch (err) {
+          if (err.message === 'ABORTED') {
+            // Handled cleanly
+          } else if (err.message === 'ALL_KEYS_EXHAUSTED') {
+            showToast(t('toastAllKeysExhausted'), 'error');
+            els.progressStatusText.textContent = t('toastAllKeysExhausted');
+          } else {
+            showToast(err.message || 'OCR error', 'error');
+            els.progressStatusText.textContent = err.message || 'OCR error';
+          }
+        } finally {
+          setProcessingUI(false);
+        }
+      }
+
+      function appendExtractedPageText(pageNum, text) {
+        const marker = els.pageMarkersCheckbox.checked ? `--- Page ${pageNum} ---\n` : '';
+        const chunk = `${marker}${text}\n\n`;
+        const current = els.outputTextarea.value;
+        els.outputTextarea.value = current ? `${current.replace(/\s+$/, '')}\n\n${chunk}` : chunk;
+        updateEditorStats();
+
+        if (els.autoScrollToggle.checked) {
+          els.outputTextarea.scrollTop = els.outputTextarea.scrollHeight;
+        }
+      }
+
+      // =========================================================================
+      // 12. Event Bindings
+      // =========================================================================
+      function bindEvents() {
+        // Language & Theme
+        els.langEnBtn.addEventListener('click', () => setLanguage('en'));
+        els.langMyBtn.addEventListener('click', () => setLanguage('my'));
+        els.themeToggleBtn.addEventListener('click', toggleTheme);
+
+        // API Keys Modal
+        els.openKeysModalBtn.addEventListener('click', openApiKeysModal);
+        els.inlineManageKeysBtn.addEventListener('click', openApiKeysModal);
+        els.closeKeysModalBtn.addEventListener('click', closeApiKeysModal);
+        els.cancelKeysBtn.addEventListener('click', closeApiKeysModal);
+        els.saveKeysBtn.addEventListener('click', saveApiKeysFromModal);
+        els.resetKeyHealthBtn.addEventListener('click', () => {
+          state.apiKeys.forEach((k) => (k.status = 'ready'));
+          state.currentKeyIndex = 0;
+          renderKeyPoolList();
+          updateKeyStatusSummary();
+          showToast(t('toastKeysReset'), 'info');
+        });
+        els.apiKeysModal.addEventListener('click', (e) => {
+          if (e.target === els.apiKeysModal) closeApiKeysModal();
+        });
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && !els.apiKeysModal.classList.contains('hidden')) {
+            closeApiKeysModal();
+          }
+        });
+
+        // Drag-and-drop + file input
+        els.dropZone.addEventListener('click', () => els.pdfFileInput.click());
+        els.dropZone.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            els.pdfFileInput.click();
+          }
+        });
+        els.pdfFileInput.addEventListener('change', (e) => {
+          if (e.target.files && e.target.files[0]) {
+            handleFileSelected(e.target.files[0]);
+          }
+        });
+        els.dropZone.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          els.dropZone.classList.add('border-blue-500', 'bg-blue-50/50', 'dark:bg-blue-950/30');
+        });
+        els.dropZone.addEventListener('dragleave', () => {
+          els.dropZone.classList.remove('border-blue-500', 'bg-blue-50/50', 'dark:bg-blue-950/30');
+        });
+        els.dropZone.addEventListener('drop', (e) => {
+          e.preventDefault();
+          els.dropZone.classList.remove('border-blue-500', 'bg-blue-50/50', 'dark:bg-blue-950/30');
+          if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            handleFileSelected(e.dataTransfer.files[0]);
+          }
+        });
+        els.clearFileBtn.addEventListener('click', clearLoadedFile);
+
+        // Extraction Mode Tabs
+        els.modeLocalBtn.addEventListener('click', () => {
+          if (state.isProcessing) return;
+          state.mode = 'local';
+          updateModeUI();
+        });
+        els.modeOcrBtn.addEventListener('click', () => {
+          if (state.isProcessing) return;
+          state.mode = 'ocr';
+          updateModeUI();
+        });
+
+        // Range Toggle
+        els.rangeAllBtn.addEventListener('click', () => {
+          state.rangeMode = 'all';
+          updateRangeUI();
+        });
+        els.rangeCustomBtn.addEventListener('click', () => {
+          state.rangeMode = 'custom';
+          updateRangeUI();
+        });
+
+        // Start / Stop Extraction
+        els.startExtractBtn.addEventListener('click', () => {
+          if (!state.pdfDoc || state.isProcessing) return;
+          state.abortRequested = false;
+          if (state.mode === 'local') {
+            runLocalExtraction();
+          } else {
+            runGeminiOcrExtraction();
+          }
+        });
+
+        els.stopExtractBtn.addEventListener('click', () => {
+          state.abortRequested = true;
+        });
+
+        // Scanned Alert Banner Actions
+        els.switchToOcrActionBtn.addEventListener('click', () => {
+          els.scannedAlertBanner.classList.add('hidden');
+          state.mode = 'ocr';
+          updateModeUI();
+          els.outputTextarea.value = '';
+          updateEditorStats();
+          if (!state.apiKeys.length) {
+            showToast(t('toastNeedKeys'), 'warning');
+            openApiKeysModal();
+            return;
+          }
+          state.abortRequested = false;
+          runGeminiOcrExtraction();
+        });
+        els.dismissScannedAlertBtn.addEventListener('click', () => {
+          els.scannedAlertBanner.classList.add('hidden');
+        });
+
+        // Editor & Export Actions
+        els.outputTextarea.addEventListener('input', updateEditorStats);
+
+        els.copyAllBtn.addEventListener('click', async () => {
+          const text = els.outputTextarea.value;
+          if (!text.trim()) {
+            showToast(t('toastNoText'), 'warning');
+            return;
+          }
+          try {
+            await navigator.clipboard.writeText(text);
+            showToast(t('toastCopied'), 'success');
+          } catch (e) {
+            els.outputTextarea.select();
+            document.execCommand('copy');
+            showToast(t('toastCopied'), 'success');
+          }
+        });
+
+        els.downloadTxtBtn.addEventListener('click', () => {
+          const text = els.outputTextarea.value;
+          if (!text.trim()) {
+            showToast(t('toastNoText'), 'warning');
+            return;
+          }
+          // Include UTF-8 BOM so Burmese script renders cleanly across Windows Notepad & all editors
+          const blob = new Blob(['\uFEFF' + text], { type: 'text/plain;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          const baseName = state.fileName ? state.fileName.replace(/\.pdf$/i, '') : 'extracted_book';
+          a.href = url;
+          a.download = `${baseName}_extracted.txt`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          showToast(t('toastDownloaded'), 'success');
+        });
+
+        els.applyCleanupNowBtn.addEventListener('click', () => {
+          const current = els.outputTextarea.value;
+          if (!current.trim()) {
+            showToast(t('toastNoText'), 'warning');
+            return;
+          }
+          els.outputTextarea.value = cleanBurmeseText(current);
+          updateEditorStats();
+          showToast(t('toastCleaned'), 'success');
+        });
+
+        els.clearTextBtn.addEventListener('click', () => {
+          if (!els.outputTextarea.value) return;
+          els.outputTextarea.value = '';
+          updateEditorStats();
+          showToast(t('toastCleared'), 'info');
+        });
+      }
+
+      // =========================================================================
+      // 13. Bootstrap Application
+      // =========================================================================
+      function init() {
+        if (window.lucide && typeof window.lucide.createIcons === 'function') {
+          window.lucide.createIcons();
+        }
+        loadApiKeys();
+        bindEvents();
+        updateRangeUI();
+        applyLanguage();
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+    })();
+  </script>
+</body>
+</html>

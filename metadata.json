@@ -1,0 +1,6 @@
+{
+  "name": "SarOak PDF Extractor",
+  "description": "Hybrid browser-based PDF text extraction and Burmese/English AI OCR studio with multi-key Gemini rotation, designed for static hosting.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
